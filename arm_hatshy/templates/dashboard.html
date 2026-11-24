@@ -1,0 +1,370 @@
+{% extends "base.html" %}
+{% block title %}Басқару панелі — АРМ Хатшы{% endblock %}
+{% block page_title %}Басқару панелі{% endblock %}
+{% block page_subtitle %}Кафедра бойынша аналитика, статистика, кесте және соңғы белсенділік{% endblock %}
+
+{% block content %}
+<div class="acadex-layout">
+    <!-- Левая основная колонка -->
+    <div class="acadex-main">
+        <!-- 4 ключевые карточки как в референсе -->
+        <div class="acadex-kpi-grid">
+            <a href="{{ url_for('table_view', table_name='studentter') }}" class="acadex-kpi-card">
+                <div>
+                    <div class="acadex-kpi-label">Студенттер</div>
+                    <div class="acadex-kpi-val">{{ stats.studentter.count }}</div>
+                </div>
+                <span class="acadex-arrow"><i class="fas fa-arrow-right"></i></span>
+            </a>
+
+            <a href="{{ url_for('table_view', table_name='qyzmetkerler') }}" class="acadex-kpi-card">
+                <div>
+                    <div class="acadex-kpi-label">Қызметкерлер</div>
+                    <div class="acadex-kpi-val">{{ stats.qyzmetkerler.count }}</div>
+                </div>
+                <span class="acadex-arrow"><i class="fas fa-arrow-right"></i></span>
+            </a>
+
+            <a href="{{ url_for('table_view', table_name='quzhattar') }}" class="acadex-kpi-card">
+                <div>
+                    <div class="acadex-kpi-label">Құжаттар</div>
+                    <div class="acadex-kpi-val">{{ stats.quzhattar.count }}</div>
+                </div>
+                <span class="acadex-arrow"><i class="fas fa-arrow-right"></i></span>
+            </a>
+
+            <a href="{{ url_for('table_view', table_name='tapsyrmalar') }}" class="acadex-kpi-card">
+                <div>
+                    <div class="acadex-kpi-label">Тапсырмалар</div>
+                    <div class="acadex-kpi-val">{{ stats.tapsyrmalar.count }}</div>
+                </div>
+                <span class="acadex-arrow"><i class="fas fa-arrow-right"></i></span>
+            </a>
+        </div>
+
+        <!-- Два графика: динамика документов/задач и распределение по месяцам -->
+        <div class="acadex-charts-row">
+            <div class="panel acadex-chart-card">
+                <div class="panel-header" style="margin-bottom: 10px;">
+                    <div class="panel-title">Белсенділік динамикасы</div>
+                    <span class="badge badge-neutral">Құжаттар &amp; Тапсырмалар</span>
+                </div>
+                <div class="chart-wrap">
+                    <canvas id="activityLineChart"></canvas>
+                </div>
+            </div>
+
+            <div class="panel acadex-chart-card">
+                <div class="panel-header" style="margin-bottom: 10px;">
+                    <div class="panel-title">Айлық жүктеме</div>
+                    <span class="badge badge-neutral">Отырыстар</span>
+                </div>
+                <div class="chart-wrap">
+                    <canvas id="monthlyBarChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Нижний ряд: Соңғы құжаттар, Топтар/Студенттер (пончик), Тапсырмалар -->
+        <div class="acadex-bottom-grid">
+            <!-- Соңғы құжаттар (аналог Messages / View All) -->
+            <div class="panel acadex-mini-panel">
+                <div class="panel-header" style="margin-bottom: 12px;">
+                    <div class="panel-title">Соңғы құжаттар</div>
+                    <a href="{{ url_for('table_view', table_name='quzhattar') }}" class="acadex-link-all">Барлығы</a>
+                </div>
+                <div class="acadex-list">
+                    {% for d in recent_docs %}
+                    <a href="{{ url_for('table_view', table_name='quzhattar') }}" class="acadex-list-item">
+                        <div class="acadex-avatar-soft">{{ d[1][:2] }}</div>
+                        <div class="acadex-list-body">
+                            <div class="acadex-list-top">
+                                <strong>{{ d[1] }}</strong>
+                                <span>{{ d[3] }}</span>
+                            </div>
+                            <div class="acadex-list-sub">{{ d[2] }}</div>
+                        </div>
+                    </a>
+                    {% else %}
+                    <div class="acadex-empty">Құжаттар жоқ</div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Топтар мен студенттер үлесі (аналог Students donut) -->
+            <div class="panel acadex-mini-panel">
+                <div class="panel-header" style="margin-bottom: 8px;">
+                    <div class="panel-title">Топтар бойынша</div>
+                    <a href="{{ url_for('table_view', table_name='toptar') }}" class="acadex-link-all">Топтар</a>
+                </div>
+                <div class="donut-box">
+                    <canvas id="groupsDonutChart"></canvas>
+                    <div class="donut-center">
+                        <div class="donut-num">{{ stats.studentter.count }}</div>
+                        <div class="donut-lbl">Студент</div>
+                    </div>
+                </div>
+                <div class="group-legend">
+                    {% for g_name, g_cnt in group_breakdown[:4] %}
+                    <div class="group-legend-row">
+                        <span><i class="fas fa-circle" style="color: var(--accent-gold); font-size: 7px; margin-right: 6px;"></i>{{ g_name }}</span>
+                        <strong>{{ g_cnt }}</strong>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Соңғы тапсырмалар (аналог Student Activity / View All) -->
+            <div class="panel acadex-mini-panel">
+                <div class="panel-header" style="margin-bottom: 12px;">
+                    <div class="panel-title">Тапсырмалар</div>
+                    <a href="{{ url_for('table_view', table_name='tapsyrmalar') }}" class="acadex-link-all">Барлығы</a>
+                </div>
+                <div class="acadex-list">
+                    {% for t in recent_tasks %}
+                    <div class="acadex-list-item">
+                        <div class="acadex-icon-badge"><i class="fas fa-check-circle"></i></div>
+                        <div class="acadex-list-body">
+                            <div class="acadex-list-top">
+                                <strong>{{ t[1] }}</strong>
+                                <span>{{ t[3] }}</span>
+                            </div>
+                            <div class="acadex-list-sub">{{ t[2] }} • <span class="badge badge-progress" style="padding: 1px 7px; font-size: 11px;">{{ t[5] }}</span></div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="acadex-empty">Тапсырмалар жоқ</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Полный список всех 10 кесте (быстрый доступ к остальным таблицам) -->
+        <div class="panel" style="margin-top: 18px;">
+            <div class="panel-header" style="margin-bottom: 12px;">
+                <div class="panel-title"><i class="fas fa-th-large" style="color: var(--accent-gold);"></i> Барлық деректер кестелері</div>
+                {% if current_user.role == 'admin' %}
+                <a href="{{ url_for('manage_users') }}" class="btn btn-outline btn-sm">Пайдаланушылар: {{ users_count }}</a>
+                {% endif %}
+            </div>
+            <div class="all-tables-strip">
+                {% for key, st in stats.items() %}
+                <a href="{{ url_for('table_view', table_name=key) }}" class="table-pill">
+                    <i class="fas {{ st.icon }}"></i>
+                    <span>{{ st.title }}</span>
+                    <strong>{{ st.count }}</strong>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Правая колонка: Календарь, Кесте (Schedule), Соңғы әрекеттер -->
+    <aside class="acadex-right">
+        <!-- Календарь -->
+        <div class="panel cal-panel">
+            <div class="cal-header">
+                <div class="cal-title" id="calMonthLabel">Қараша 2026</div>
+                <div class="cal-nav">
+                    <button type="button" id="prevMonthBtn" class="cal-btn" title="Алдыңғы ай"><i class="fas fa-chevron-left"></i></button>
+                    <button type="button" id="nextMonthBtn" class="cal-btn" title="Келесі ай"><i class="fas fa-chevron-right"></i></button>
+                </div>
+            </div>
+            <div class="cal-weekdays">
+                <span>Дс</span><span>Сс</span><span>Ср</span><span>Бс</span><span>Жм</span><span>Сн</span><span>Жк</span>
+            </div>
+            <div class="cal-days" id="calDaysGrid"></div>
+        </div>
+
+        <!-- Кесте / Отырыстар (Schedule) -->
+        <div class="panel">
+            <div class="panel-header" style="margin-bottom: 12px;">
+                <div>
+                    <div class="panel-title">Отырыстар кестесі</div>
+                    <div style="font-size: 12px; color: var(--text-secondary);">Кафедра іс-шаралары</div>
+                </div>
+                <a href="{{ url_for('table_view', table_name='otyrystar') }}" class="cal-plus-btn" title="Жаңа отырыс"><i class="fas fa-plus"></i></a>
+            </div>
+            <div class="schedule-stack">
+                {% for m in recent_meetings %}
+                <a href="{{ url_for('table_view', table_name='otyrystar') }}" class="schedule-card">
+                    <div class="schedule-date">{{ m[2] }}</div>
+                    <div class="schedule-topic">{{ m[1] }}</div>
+                    <div class="schedule-meta"><i class="fas fa-door-open"></i> {{ m[3] or 'Кабинет' }} • {{ m[4] or 'Жауапты' }}</div>
+                </a>
+                {% else %}
+                <div class="acadex-empty">Отырыстар жоспарланбаған</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Соңғы әрекеттер (Recent Activities) -->
+        <div class="panel">
+            <div class="panel-header" style="margin-bottom: 12px;">
+                <div class="panel-title">Соңғы хабарламалар мен хаттамалар</div>
+                <a href="{{ url_for('table_view', table_name='hattamalar') }}" class="acadex-link-all">Хаттама</a>
+            </div>
+            <div class="activity-stack">
+                {% for p in recent_protocols %}
+                <div class="activity-row">
+                    <div class="activity-dot"><i class="fas fa-file-signature"></i></div>
+                    <div>
+                        <div class="activity-text"><strong>{{ p[1] }}</strong> — {{ p[2] }}</div>
+                        <div class="activity-time">{{ p[3] }}</div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="acadex-empty">Жазбалар жоқ</div>
+                {% endfor %}
+            </div>
+        </div>
+    </aside>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+const monthlyLabels = {{ chart_months | tojson }};
+const docsSeries = {{ chart_docs_series | tojson }};
+const tasksSeries = {{ chart_tasks_series | tojson }};
+const meetingsSeries = {{ chart_meetings_series | tojson }};
+const groupLabels = {{ group_labels | tojson }};
+const groupCounts = {{ group_counts | tojson }};
+
+const goldColor = '#9b8747';
+const softGold = 'rgba(155, 135, 71, 0.16)';
+const sageColor = '#4f7a66';
+const warmBorder = '#ece6da';
+
+new Chart(document.getElementById('activityLineChart'), {
+    type: 'line',
+    data: {
+        labels: monthlyLabels,
+        datasets: [
+            {
+                label: 'Құжаттар',
+                data: docsSeries,
+                borderColor: sageColor,
+                backgroundColor: sageColor,
+                tension: 0.35,
+                pointRadius: 4,
+                borderWidth: 2
+            },
+            {
+                label: 'Тапсырмалар',
+                data: tasksSeries,
+                borderColor: goldColor,
+                backgroundColor: softGold,
+                tension: 0.35,
+                pointRadius: 4,
+                borderWidth: 2,
+                fill: true
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'top', labels: { boxWidth: 10, font: { size: 11 } } } },
+        scales: {
+            y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 11 } }, grid: { color: warmBorder } },
+            x: { ticks: { font: { size: 11 } }, grid: { display: false } }
+        }
+    }
+});
+
+new Chart(document.getElementById('monthlyBarChart'), {
+    type: 'bar',
+    data: {
+        labels: monthlyLabels,
+        datasets: [{
+            label: 'Отырыстар',
+            data: meetingsSeries,
+            backgroundColor: goldColor,
+            borderRadius: 6,
+            maxBarThickness: 22
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+            y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 11 } }, grid: { color: warmBorder } },
+            x: { ticks: { font: { size: 11 } }, grid: { display: false } }
+        }
+    }
+});
+
+const donutEl = document.getElementById('groupsDonutChart');
+if (donutEl) {
+    new Chart(donutEl, {
+        type: 'doughnut',
+        data: {
+            labels: groupLabels.length ? groupLabels : ['Топтар'],
+            datasets: [{
+                data: groupCounts.length ? groupCounts : [1],
+                backgroundColor: ['#4f7a66', '#9b8747', '#c6a75e', '#cfa5a5', '#7c98ab'],
+                borderWidth: 0,
+                cutout: '74%'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } }
+        }
+    });
+}
+
+// Интерактивный календарь
+const monthsKk = [
+    'Қаңтар', 'Ақпан', 'Наурыз', 'Сәуір', 'Мамыр', 'Маусым',
+    'Шілде', 'Тамыз', 'Қыркүйек', 'Қазан', 'Қараша', 'Желтоқсан'
+];
+let viewDate = new Date(2026, 10, 25); // 25 Қараша 2026
+
+function renderCalendar() {
+    const year = viewDate.getFullYear();
+    const month = viewDate.getMonth();
+    document.getElementById('calMonthLabel').textContent = `${monthsKk[month]} ${year}`;
+
+    const firstDay = new Date(year, month, 1);
+    let startOffset = firstDay.getDay() - 1;
+    if (startOffset < 0) startOffset = 6;
+
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const grid = document.getElementById('calDaysGrid');
+    grid.innerHTML = '';
+
+    for (let i = 0; i < startOffset; i++) {
+        const empty = document.createElement('span');
+        empty.className = 'cal-day muted';
+        grid.appendChild(empty);
+    }
+
+    const today = new Date();
+    for (let d = 1; d <= daysInMonth; d++) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'cal-day';
+        btn.textContent = d;
+        if (d === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
+            btn.classList.add('active');
+        }
+        grid.appendChild(btn);
+    }
+}
+
+document.getElementById('prevMonthBtn').addEventListener('click', () => {
+    viewDate.setMonth(viewDate.getMonth() - 1);
+    renderCalendar();
+});
+document.getElementById('nextMonthBtn').addEventListener('click', () => {
+    viewDate.setMonth(viewDate.getMonth() + 1);
+    renderCalendar();
+});
+renderCalendar();
+</script>
+{% endblock %}

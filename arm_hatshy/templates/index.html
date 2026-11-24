@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+{% block title %}{{ meta.title }} — АРМ Хатшы{% endblock %}
+{% block page_title %}{{ meta.title }}{% endblock %}
+{% block page_subtitle %}Жазбалар саны: {{ rows|length }} • MS Access кестесі: {{ meta.db_table }}{% endblock %}
+
+{% block content %}
+<div class="panel add-panel">
+    <div class="panel-header">
+        <div class="panel-title"><i class="fas fa-plus-circle" style="color: var(--accent-gold);"></i> Жаңа жазба қосу</div>
+    </div>
+    <form action="{{ url_for('add_record', table_name=table_key) }}" method="POST" class="form-grid">
+        {% for idx in range(meta.fields|length) %}
+            {% set f_name = meta.fields[idx] %}
+            {% set col_label = meta.columns[idx] %}
+            {% set f_type = meta.types[idx] %}
+            <div class="field-group">
+                <label>{{ col_label }}</label>
+                {% if f_type == 'fk' %}
+                    <select name="{{ f_name }}" class="select-control">
+                        <option value="">— Таңдаңыз —</option>
+                        {% for opt_val, opt_label in field_options.get(f_name, []) %}
+                        <option value="{{ opt_val }}">{{ opt_label }} (ID: {{ opt_val }})</option>
+                        {% endfor %}
+                    </select>
+                {% elif f_type == 'select' %}
+                    <select name="{{ f_name }}" class="select-control">
+                        {% for ch in meta.choices.get(f_name, []) %}
+                        <option value="{{ ch }}">{{ ch }}</option>
+                        {% endfor %}
+                    </select>
+                {% elif f_type == 'date' %}
+                    <input type="date" name="{{ f_name }}" class="input-control">
+                {% elif f_type == 'number' %}
+                    <input type="number" name="{{ f_name }}" class="input-control" placeholder="{{ col_label }}">
+                {% elif f_type == 'email' %}
+                    <input type="email" name="{{ f_name }}" class="input-control" placeholder="example@edu.kz">
+                {% else %}
+                    <input type="text" name="{{ f_name }}" class="input-control" placeholder="{{ col_label }}">
+                {% endif %}
+            </div>
+        {% endfor %}
+        <div class="field-group">
+            <button type="submit" class="btn btn-gold"><i class="fas fa-plus"></i> Қосу</button>
+        </div>
+    </form>
+</div>
+
+<div class="panel">
+    <div class="toolbar">
+        <form action="{{ url_for('table_view', table_name=table_key) }}" method="GET" class="search-form">
+            <input type="text" name="q" value="{{ search_q }}" class="input-control" placeholder="Кесте бойынша іздеу..." style="min-width: 260px;">
+            {% if status_filter %}
+            <input type="hidden" name="status" value="{{ status_filter }}">
+            {% endif %}
+            <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search"></i> Іздеу</button>
+            {% if search_q or status_filter %}
+            <a href="{{ url_for('table_view', table_name=table_key) }}" class="btn btn-outline btn-sm">Тазарту</a>
+            {% endif %}
+        </form>
+
+        <div style="display: flex; gap: 8px;">
+            <button type="button" onclick="window.print()" class="btn btn-outline btn-sm"><i class="fas fa-print"></i> Басып шығару</button>
+            <a href="{{ url_for('export_csv', table_name=table_key) }}" class="btn btn-outline btn-sm"><i class="fas fa-file-csv"></i> CSV экспорт</a>
+        </div>
+    </div>
+
+    {% if 'Статус' in meta.fields %}
+    <div class="filter-chips">
+        <a href="{{ url_for('table_view', table_name=table_key, q=search_q) }}" class="chip {% if not status_filter %}active{% endif %}">Барлығы</a>
+        <a href="{{ url_for('table_view', table_name=table_key, status='Орындалуда', q=search_q) }}" class="chip {% if status_filter == 'Орындалуда' %}active{% endif %}">Орындалуда</a>
+        <a href="{{ url_for('table_view', table_name=table_key, status='Аяқталды', q=search_q) }}" class="chip {% if status_filter == 'Аяқталды' %}active{% endif %}">Аяқталды</a>
+        <a href="{{ url_for('table_view', table_name=table_key, status='Мерзімі өткен', q=search_q) }}" class="chip {% if status_filter == 'Мерзімі өткен' %}active{% endif %}">Мерзімі өткен</a>
+    </div>
+    {% endif %}
+
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th style="width: 52px;">#</th>
+                    {% for col in meta.columns %}
+                    <th>{{ col }}</th>
+                    {% endfor %}
+                    <th class="actions-col" style="width: 100px; text-align: right;">Әрекеттер</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in rows %}
+                <tr>
+                    <td style="color: var(--text-secondary); font-weight: 600;">{{ loop.index }}</td>
+                    {% for idx in range(item.display|length) %}
+                        {% set val = item.display[idx] %}
+                        {% set f_name = meta.fields[idx] %}
+                        <td>
+                            {% if f_name in ('Статус', 'Статус_Архив') %}
+                                {% if val in ('Аяқталды', 'Бекітілді') %}
+                                    <span class="badge badge-done">{{ val }}</span>
+                                {% elif val == 'Мерзімі өткен' %}
+                                    <span class="badge badge-overdue">{{ val }}</span>
+                                {% else %}
+                                    <span class="badge badge-progress">{{ val }}</span>
+                                {% endif %}
+                            {% else %}
+                                {{ val }}
+                            {% endif %}
+                        </td>
+                    {% endfor %}
+                    <td class="actions-col" style="text-align: right; white-space: nowrap;">
+                        <button type="button"
+                                class="btn-icon edit"
+                                title="Өңдеу"
+                                data-id="{{ item.id }}"
+                                data-values='{{ item.raw | tojson }}'
+                                onclick="openEditModal(this)">
+                            <i class="fas fa-pen"></i>
+                        </button>
+                        <form action="{{ url_for('delete_record', table_name=table_key, row_id=item.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Бұл жазбаны өшіруге сенімдісіз бе?');">
+                            <button type="submit" class="btn-icon delete" title="Өшіру">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="{{ meta.columns|length + 2 }}" style="text-align:center; padding: 28px; color: var(--text-secondary);">
+                        Деректер табылмады
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal-backdrop" id="editModal">
+    <div class="modal-card">
+        <div class="modal-header">
+            <div class="panel-title"><i class="fas fa-edit" style="color: var(--accent-gold);"></i> Жазбаны өңдеу</div>
+            <button type="button" class="btn-icon" onclick="closeEditModal()"><i class="fas fa-times"></i></button>
+        </div>
+        <form id="editForm" method="POST">
+            <div class="modal-body-grid">
+                {% for idx in range(meta.fields|length) %}
+                    {% set f_name = meta.fields[idx] %}
+                    {% set col_label = meta.columns[idx] %}
+                    {% set f_type = meta.types[idx] %}
+                    <div class="field-group">
+                        <label>{{ col_label }}</label>
+                        {% if f_type == 'fk' %}
+                            <select name="{{ f_name }}" id="edit_{{ f_name }}" class="select-control">
+                                <option value="">— Таңдаңыз —</option>
+                                {% for opt_val, opt_label in field_options.get(f_name, []) %}
+                                <option value="{{ opt_val }}">{{ opt_label }} (ID: {{ opt_val }})</option>
+                                {% endfor %}
+                            </select>
+                        {% elif f_type == 'select' %}
+                            <select name="{{ f_name }}" id="edit_{{ f_name }}" class="select-control">
+                                {% for ch in meta.choices.get(f_name, []) %}
+                                <option value="{{ ch }}">{{ ch }}</option>
+                                {% endfor %}
+                            </select>
+                        {% elif f_type == 'date' %}
+                            <input type="date" name="{{ f_name }}" id="edit_{{ f_name }}" class="input-control">
+                        {% elif f_type == 'number' %}
+                            <input type="number" name="{{ f_name }}" id="edit_{{ f_name }}" class="input-control">
+                        {% elif f_type == 'email' %}
+                            <input type="email" name="{{ f_name }}" id="edit_{{ f_name }}" class="input-control">
+                        {% else %}
+                            <input type="text" name="{{ f_name }}" id="edit_{{ f_name }}" class="input-control">
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-outline" onclick="closeEditModal()">Болдырмау</button>
+                <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Сақтау</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const FIELDS = {{ meta.fields | tojson }};
+const EDIT_BASE = "{{ url_for('table_view', table_name=table_key) }}/edit/";
+
+function openEditModal(btn) {
+    const id = btn.getAttribute('data-id');
+    const values = JSON.parse(btn.getAttribute('data-values'));
+    const form = document.getElementById('editForm');
+    form.action = EDIT_BASE + id;
+
+    FIELDS.forEach((field, idx) => {
+        const el = document.getElementById('edit_' + field);
+        if (el) {
+            el.value = values[idx] !== null && values[idx] !== undefined ? values[idx] : '';
+        }
+    });
+    document.getElementById('editModal').classList.add('open');
+}
+
+function closeEditModal() {
+    document.getElementById('editModal').classList.remove('open');
+}
+
+document.getElementById('editModal').addEventListener('click', function(e) {
+    if (e.target === this) closeEditModal();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Жүйеге кіру — АРМ Хатшы</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="login-page">
+    <div class="login-card">
+        <div style="display:flex; align-items:center; gap:12px; margin-bottom:22px;">
+            <div class="brand-icon"><i class="fas fa-university"></i></div>
+            <div>
+                <div style="font-size:18px; font-weight:700;">АРМ Хатшы</div>
+                <div style="font-size:12.5px; color:var(--text-secondary);">Кафедра хатшысының жұмыс орны</div>
+            </div>
+        </div>
+
+        {% if error %}
+        <div class="flash-msg error" style="margin-bottom:16px;">
+            <i class="fas fa-exclamation-circle"></i>
+            <span>{{ error }}</span>
+        </div>
+        {% endif %}
+
+        <form method="POST" action="{{ url_for('login') }}" style="display:flex; flex-direction:column; gap:14px;">
+            <div class="field-group">
+                <label>Логин</label>
+                <input type="text" name="username" value="{{ username }}" class="input-control" placeholder="hatshy немесе admin" required>
+            </div>
+            <div class="field-group">
+                <label>Құпиясөз</label>
+                <input type="password" name="password" class="input-control" placeholder="••••••••" required>
+            </div>
+            <button type="submit" class="btn btn-primary" style="margin-top:6px; padding:11px;">
+                <i class="fas fa-sign-in-alt"></i> Кіру
+            </button>
+        </form>
+    </div>
+</div>
+</body>
+</html>

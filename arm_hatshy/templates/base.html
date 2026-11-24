@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Кафедра хатшысының АРМ{% endblock %}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="app-layout">
+    <aside class="sidebar">
+        <div class="brand-box">
+            <div class="brand-icon"><i class="fas fa-university"></i></div>
+            <div>
+                <div class="brand-title">АРМ Хатшы</div>
+                <div class="brand-sub">Кафедра құжат айналымы</div>
+            </div>
+        </div>
+
+        <nav class="nav-list">
+            <div class="nav-section-label">Негізгі</div>
+            <a href="{{ url_for('dashboard') }}" class="nav-link {% if active_tab == 'dashboard' %}active{% endif %}">
+                <i class="fas fa-chart-pie"></i>
+                <span>Басқару панелі</span>
+            </a>
+
+            <div class="nav-section-label">Деректер қоры</div>
+            {% for key, item in tables.items() %}
+            <a href="{{ url_for('table_view', table_name=key) }}" class="nav-link {% if active_tab == key %}active{% endif %}">
+                <i class="fas {{ item.icon }}"></i>
+                <span>{{ item.title }}</span>
+            </a>
+            {% endfor %}
+
+            {% if current_user.role == 'admin' %}
+            <div class="nav-section-label">Әкімшілік</div>
+            <a href="{{ url_for('manage_users') }}" class="nav-link {% if active_tab == 'admin_users' %}active{% endif %}">
+                <i class="fas fa-user-shield"></i>
+                <span>Пайдаланушылар</span>
+            </a>
+            {% endif %}
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="user-pill">
+                <div class="user-info-wrap">
+                    <div class="avatar-circle">{{ current_user.initials }}</div>
+                    <div class="user-meta">
+                        <div class="user-name">{{ current_user.full_name }}</div>
+                        <div class="user-role">{{ current_user.role_title }}</div>
+                    </div>
+                </div>
+                <a href="{{ url_for('logout') }}" class="logout-btn" title="Шығу">
+                    <i class="fas fa-sign-out-alt"></i>
+                </a>
+            </div>
+        </div>
+    </aside>
+
+    <div class="main-wrap">
+        <header class="topbar">
+            <div class="page-heading">
+                <h1>{% block page_title %}Басқару панелі{% endblock %}</h1>
+                <p>{% block page_subtitle %}Кафедраның автоматтандырылған жұмыс орны{% endblock %}</p>
+            </div>
+            {% if db_mode is defined %}
+            <div class="db-badge">
+                <span class="db-dot"></span>
+                <span>Қосылған ҚБ: {{ db_mode }}</span>
+            </div>
+            {% endif %}
+        </header>
+
+        <main class="content-area">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                <div class="flash-stack">
+                    {% for category, message in messages %}
+                    <div class="flash-msg {{ category }}">
+                        <i class="fas {% if category == 'success' %}fa-check-circle{% else %}fa-exclamation-circle{% endif %}"></i>
+                        <span>{{ message }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            {% endwith %}
+
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+</div>
+{% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Пайдаланушылар — АРМ Хатшы{% endblock %}
+{% block page_title %}Жүйе пайдаланушылары{% endblock %}
+{% block page_subtitle %}Қолжетімділік рөлдерін басқару{% endblock %}
+
+{% block content %}
+<div class="panel">
+    <div class="panel-header">
+        <div class="panel-title"><i class="fas fa-user-plus" style="color: var(--accent-gold);"></i> Жаңа пайдаланушы қосу</div>
+    </div>
+    <form action="{{ url_for('add_user') }}" method="POST" class="form-grid">
+        <div class="field-group">
+            <label>Аты-жөні</label>
+            <input type="text" name="full_name" class="input-control" placeholder="Мысалы: Амандық Сабина" required>
+        </div>
+        <div class="field-group">
+            <label>Логин</label>
+            <input type="text" name="username" class="input-control" placeholder="Логин" required>
+        </div>
+        <div class="field-group">
+            <label>Құпиясөз</label>
+            <input type="text" name="password" class="input-control" placeholder="Құпиясөз" required>
+        </div>
+        <div class="field-group">
+            <label>Рөлі</label>
+            <select name="role" class="select-control">
+                <option value="secretary">Кафедра хатшысы</option>
+                <option value="admin">Сайт басқарушысы (Админ)</option>
+            </select>
+        </div>
+        <div class="field-group">
+            <button type="submit" class="btn btn-gold"><i class="fas fa-plus"></i> Қосу</button>
+        </div>
+    </form>
+</div>
+
+<div class="panel">
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Аты-жөні</th>
+                    <th>Логин</th>
+                    <th>Рөлі</th>
+                    <th style="text-align: right;">Әрекет</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in users %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td><strong>{{ u[3] }}</strong></td>
+                    <td>{{ u[1] }}</td>
+                    <td><span class="badge badge-neutral">{{ u[5] }}</span></td>
+                    <td style="text-align: right;">
+                        {% if u[0] != current_user.id %}
+                        <form action="{{ url_for('delete_user', user_id=u[0]) }}" method="POST" style="display:inline;" onsubmit="return confirm('Пайдаланушыны өшіру керек пе?');">
+                            <button type="submit" class="btn-icon delete"><i class="fas fa-trash"></i></button>
+                        </form>
+                        {% else %}
+                        <span style="font-size: 12px; color: var(--text-secondary);">Ағымдағы сессия</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
